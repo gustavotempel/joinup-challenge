@@ -1,6 +1,10 @@
-from django.test import TestCase
+from django.db import connection, reset_queries
+from django.test import RequestFactory, TestCase
+from django.test.utils import override_settings
+from rest_framework import status
 
 from users.models import User
+from users.views import UserView
 
 
 class UserModelTestCase(TestCase):
@@ -31,3 +35,48 @@ class UserModelTestCase(TestCase):
         self.assertListEqual(test_user.hobbies, list(["Football", "Numismatics", "Videogames", ]))
         self.assertIsNone(test_user.email_validated_at)
         self.assertIsNone(test_user.phone_validated_at)
+
+
+class ApiTestCase(TestCase):
+
+    def setUp(self):
+        self.factory = RequestFactory()
+
+    @override_settings(DEBUG=True)
+    def test_api_user(self):
+
+        payload = {
+            "email": "api_test@email.com",
+            "first_name": "First Name",
+            "last_name": "Last Name",
+            "phone": "111 22 333 4444",
+            "hobbies": [
+                "Football",
+                "Numismatics",
+                "Videogames",
+                ]
+        }
+
+        request = self.factory.post("/api/signup/", data=payload, content_type="application/json")
+        response = UserView.as_view()(request)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        print("QUERIES COUNT:", len(connection.queries))
+        for query in connection.queries:
+            print("----------------------------------------------------------------------\n", query['sql'])
+        reset_queries()
+
+        user_email = "api_test@email.com"
+        request = self.factory.get(f"/api/profile/{user_email}")
+        response = UserView.as_view()(request, user_email)
+        self.assertEqual(response.data["first_name"], "First Name")
+        self.assertEqual(response.data["last_name"], "Last Name")
+        self.assertEqual(response.data["phone"], "111 22 333 4444")
+        self.assertListEqual(response.data["hobbies"], list(["Football", "Numismatics", "Videogames"]))
+        self.assertFalse(response.data["is_valid_email"])
+        self.assertFalse(response.data["is_valid_phone"])
+
+        print("QUERIES COUNT:", len(connection.queries))
+        for query in connection.queries:
+            print("----------------------------------------------------------------------\n", query['sql'])
+        reset_queries()
