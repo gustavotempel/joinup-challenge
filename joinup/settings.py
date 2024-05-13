@@ -10,10 +10,17 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
+from dotenv import load_dotenv
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+ENVIRONMENT = os.environ.get("ENVIRONMENT")
+
+if not ENVIRONMENT:
+    load_dotenv()
 
 
 # Quick-start development settings - unsuitable for production
@@ -37,6 +44,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    # Third party apps
+    'rest_framework',
 ]
 
 MIDDLEWARE = [
@@ -74,9 +84,13 @@ WSGI_APPLICATION = 'joinup.wsgi.application'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    "default": {
+        "ENGINE": os.environ.get("DB_ENGINE", default="django.db.backends.postgresql"),
+        "HOST": os.environ.get("DB_HOST", default="localhost"),
+        "NAME": os.environ.get("DB_NAME", default="postgres"),
+        "PORT": os.environ.get("DB_PORT", default="5432"),
+        "USER": os.environ.get("DB_USER", default="postgres"),
+        "PASSWORD": os.environ.get("DB_PASSWORD", default="postgres"),
     }
 }
 
@@ -121,3 +135,9 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
+}
