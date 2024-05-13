@@ -1,0 +1,63 @@
+version: "3.9"
+services:
+  app:
+    container_name: joinup_app_dev
+    build: .
+    command: python manage.py runserver 0.0.0.0:8001
+    ports:
+      - "8001:8001"
+    env_file:
+      - .env.dev
+    depends_on:
+      db:
+        condition: service_healthy
+      broker:
+        condition: service_started
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  async_worker:
+    container_name: joinup_async_worker_dev
+    build: .
+    entrypoint: python -m celery -A joinup worker -l info
+    env_file:
+      - .env.dev
+    depends_on:
+      - app
+      - broker
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  db:
+    container_name: joinup_db_dev
+    image: postgres:16.2-alpine3.18
+    ports:
+      - "5433:5433"
+    expose:
+      - "5433"
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - PGPORT=5433
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  broker:
+    container_name: joinup_broker_dev
+    image: rabbitmq:3.13.1-management-alpine
+    ports:
+      - "5673:5673"
+      - "15673:15672"
+    expose:
+      - "5673"
+      - "15673"
+    environment:
+      - RABBITMQ_NODE_PORT=5673
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
