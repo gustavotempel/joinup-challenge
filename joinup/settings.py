@@ -32,7 +32,13 @@ SECRET_KEY = 'django-insecure-qb61o+v*6lzb&##!+%$cm^t9%@llcnhdk-zv2zj8)rqy0n6zcd
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+# TODO: Move to environment variables
+ALLOWED_HOSTS = [
+    "0.0.0.0",
+    "127.0.0.1",
+    "localhost",
+    "host.docker.internal",
+]
 
 
 # Application definition
@@ -47,6 +53,9 @@ INSTALLED_APPS = [
 
     # Third party apps
     'rest_framework',
+
+    # My apps
+    'users',
 ]
 
 MIDDLEWARE = [
