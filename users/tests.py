@@ -1,10 +1,21 @@
+import logging
+
 from django.db import connection, reset_queries
 from django.test import RequestFactory, TestCase
 from django.test.utils import override_settings
 from rest_framework import status
 
 from users.models import User
-from users.views import UserView
+from users.views_v1 import UserView
+
+
+logger = logging.getLogger(__name__)
+
+def log_queries():    
+    logger.info("QUERIES COUNT: " + str(len(connection.queries)))
+    for query in connection.queries:
+        logger.info("----------------------------------------------------------------------\n" + query['sql'])
+    reset_queries()
 
 
 class UserModelTestCase(TestCase):
@@ -57,17 +68,14 @@ class ApiTestCase(TestCase):
                 ]
         }
 
-        request = self.factory.post("/api/signup/", data=payload, content_type="application/json")
+        request = self.factory.post("/api/v1/signup/", data=payload, content_type="application/json")
         response = UserView.as_view()(request)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-        print("QUERIES COUNT:", len(connection.queries))
-        for query in connection.queries:
-            print("----------------------------------------------------------------------\n", query['sql'])
-        reset_queries()
+        log_queries()
 
         user_email = "api_test@email.com"
-        request = self.factory.get(f"/api/profile/{user_email}")
+        request = self.factory.get(f"/api/v1/profile/{user_email}")
         response = UserView.as_view()(request, user_email)
         self.assertEqual(response.data["first_name"], "First Name")
         self.assertEqual(response.data["last_name"], "Last Name")
@@ -76,7 +84,4 @@ class ApiTestCase(TestCase):
         self.assertFalse(response.data["is_valid_email"])
         self.assertFalse(response.data["is_valid_phone"])
 
-        print("QUERIES COUNT:", len(connection.queries))
-        for query in connection.queries:
-            print("----------------------------------------------------------------------\n", query['sql'])
-        reset_queries()
+        log_queries()
